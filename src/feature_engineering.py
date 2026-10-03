@@ -1,137 +1,122 @@
+"""
+Feature Engineering Module
+"""
+
 import pandas as pd
-import numpy as np
 
 
-def add_features(df):
+def create_moving_averages(df):
+    """
+    Create Moving Average Features.
+    """
 
-    df = df.copy()
+    df["MA_5"] = df["Close"].rolling(window=5).mean()
+    df["MA_10"] = df["Close"].rolling(window=10).mean()
+    df["MA_20"] = df["Close"].rolling(window=20).mean()
+    df["MA_50"] = df["Close"].rolling(window=50).mean()
 
-
-    # Moving averages
-
-    df["MA_20"] = (
-        df["Close"]
-        .rolling(window=20)
-        .mean()
-    )
-
-
-    df["MA_50"] = (
-        df["Close"]
-        .rolling(window=50)
-        .mean()
-    )
+    return df
 
 
-    # Daily return
+def create_daily_returns(df):
+    """
+    Create Daily Return Feature.
+    """
 
-    df["Daily_Return"] = (
-        df["Close"]
-        .pct_change()
-    )
+    df["Daily_Return"] = df["Close"].pct_change()
+
+    return df
 
 
-    # RSI calculation
+def create_lag_features(df):
+    """
+    Create Lag Features.
+    """
+
+    df["Lag_1"] = df["Close"].shift(1)
+    df["Lag_2"] = df["Close"].shift(2)
+    df["Lag_3"] = df["Close"].shift(3)
+    df["Lag_5"] = df["Close"].shift(5)
+    df["Lag_10"] = df["Close"].shift(10)
+
+    return df
+
+
+def create_rsi(df, window=14):
+    """
+    Create RSI Feature.
+    """
 
     delta = df["Close"].diff()
 
-    gain = delta.where(
-        delta > 0,
-        0
-    )
+    gain = delta.clip(lower=0)
 
-    loss = -delta.where(
-        delta < 0,
-        0
-    )
+    loss = -delta.clip(upper=0)
 
+    avg_gain = gain.rolling(window).mean()
 
-    avg_gain = (
-        gain
-        .rolling(14)
-        .mean()
-    )
-
-    avg_loss = (
-        loss
-        .rolling(14)
-        .mean()
-    )
-
+    avg_loss = loss.rolling(window).mean()
 
     rs = avg_gain / avg_loss
 
-    df["RSI"] = (
-        100 -
-        (100 / (1 + rs))
-    )
+    df["RSI"] = 100 - (100 / (1 + rs))
+
+    return df
 
 
-    # MACD
+def create_macd(df):
+    """
+    Create MACD Features.
+    """
 
-    ema12 = (
-        df["Close"]
-        .ewm(span=12)
-        .mean()
-    )
+    ema12 = df["Close"].ewm(span=12, adjust=False).mean()
 
-    ema26 = (
-        df["Close"]
-        .ewm(span=26)
-        .mean()
-    )
-
+    ema26 = df["Close"].ewm(span=26, adjust=False).mean()
 
     df["MACD"] = ema12 - ema26
 
+    df["MACD_Signal"] = df["MACD"].ewm(span=9, adjust=False).mean()
 
-    # Bollinger Bands
+    df["MACD_Histogram"] = df["MACD"] - df["MACD_Signal"]
 
-    rolling_mean = (
-        df["Close"]
-        .rolling(20)
-        .mean()
-    )
+    return df
 
 
-    rolling_std = (
-        df["Close"]
-        .rolling(20)
-        .std()
-    )
+def create_bollinger_bands(df):
+    """
+    Create Bollinger Bands.
+    """
+
+    df["BB_Middle"] = df["Close"].rolling(window=20).mean()
+
+    std = df["Close"].rolling(window=20).std()
+
+    df["BB_Upper"] = df["BB_Middle"] + (2 * std)
+
+    df["BB_Lower"] = df["BB_Middle"] - (2 * std)
+
+    return df
 
 
-    df["Upper_Band"] = (
-        rolling_mean + 
-        (2 * rolling_std)
-    )
+def create_date_features(df):
+    """
+    Create Date Features.
+    """
 
+    df["Date"] = pd.to_datetime(df["Date"])
 
-    df["Lower_Band"] = (
-        rolling_mean -
-        (2 * rolling_std)
-    )
+    df["Year"] = df["Date"].dt.year
 
+    df["Month"] = df["Date"].dt.month
 
-    # Lag features
+    df["Day"] = df["Date"].dt.day
 
-    df["Close_Lag_1"] = (
-        df["Close"]
-        .shift(1)
-    )
+    df["DayOfWeek"] = df["Date"].dt.dayofweek
 
+    df["Quarter"] = df["Date"].dt.quarter
 
-    df["Close_Lag_5"] = (
-        df["Close"]
-        .shift(5)
-    )
+    df["Is_Month_Start"] = df["Date"].dt.is_month_start.astype(int)
 
-
-    # Remove empty rows
-
-    df.dropna(
-        inplace=True
-    )
-
+    df["Is_Month_End"] = df["Date"].dt.is_month_end.astype(int)
 
     return df

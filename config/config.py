@@ -2,7 +2,7 @@
 Project configuration settings.
 """
 
-DEFAULT_TICKER = "AMZN"
+DEFAULT_TICKER = "MSFT"
 
 START_DATE = "2015-01-01"
 
