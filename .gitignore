@@ -2,4 +2,3 @@
 __pycache__/
 .ipynb_checkpoints/
 *.pyc
-models/trained_models/
